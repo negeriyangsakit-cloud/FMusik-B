@@ -1,56 +1,65 @@
 import mpv
 import os
+import time
+import random
+
+def draw_visualizer(length=20):
+    # Membuat bar visualizer acak agar terlihat bergerak
+    chars = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+    bar = "".join(random.choice(chars) for _ in range(length))
+    return f"\r\033[32m{bar}\033[0m" # Warna hijau
 
 def main():
     try:
-        # Inisialisasi dengan volume default 50%
         player = mpv.MPV(video=False, ytdl=False)
         player.volume = 50 
     except:
-        print("[!] Gagal memuat MPV.")
+        print("[!] MPV Error.")
         return
 
     songs = [f for f in os.listdir('.') if f.endswith(('.mp3', '.MP3'))]
-    
     if not songs:
-        print("[!] Folder kosong.")
+        print("[!] Tidak ada lagu.")
         return
 
-    print("\n" + "="*30)
-    print("      FMusik-B PRO v1.2")
-    print("="*30)
+    os.system('clear')
+    print("\033[95m" + "="*35)
+    print("      FMusik-B VISUALIZER")
+    print("="*35 + "\033[0m")
     
     for i, song in enumerate(songs, 1):
-        print(f"[{i}] {song}")
+        print(f"\033[94m[{i}]\033[0m {song}")
 
     try:
         pilih = int(input("\nNomor lagu: ")) - 1
-        player.play(songs[pilih])
+        current_song = songs[pilih]
+        player.play(current_song)
         
-        print(f"\n[▶] Playing: {songs[pilih]}")
-        print("-" * 30)
-        print("KONTROL CEPAT:")
-        print("  [p] Pause/Resume  [+] Vol Up")
-        print("  [s] Stop          [-] Vol Down")
-        print("  [q] Keluar")
-        print("-" * 30)
-
-        while True:
-            tanya = input(f"Vol: {player.volume}% | CMD > ").lower()
+        print(f"\n[▶] Playing: \033[1m{current_song}\033[0m")
+        print("\nKontrol: [p]Pause [+]Vol+ [-]Vol- [q]Quit")
+        
+        # Loop Visualizer
+        while player.playback_abort != 'die':
+            if not player.pause:
+                # Menampilkan bar yang bergerak
+                print(f"{draw_visualizer(30)}  Vol: {player.volume}%", end="", flush=True)
             
-            if tanya == 'q' or tanya == 's':
-                player.stop()
-                break
-            elif tanya == 'p':
-                player.pause = not player.pause
-                print(">> Pause" if player.pause else ">> Resume")
-            elif tanya == '+':
-                player.volume = min(player.volume + 10, 100)
-            elif tanya == '-':
-                player.volume = max(player.volume - 10, 0)
-                
+            # Kita gunakan non-blocking input sederhana
+            # Jika ingin input tanpa enter, butuh library tambahan, 
+            # untuk sekarang kita simulasi gerakan visualizer sebentar
+            time.sleep(0.2)
+            
+            # Catatan: Di Termux, input() akan menghentikan loop visualizer.
+            # Jadi kita minta input hanya jika user menekan enter atau butuh command.
+            if player.pause:
+                cmd = input("\n[PAUSED] Masukkan perintah: ").lower()
+                if cmd == 'p': player.pause = False
+                elif cmd == 'q': break
+            
+    except KeyboardInterrupt:
+        player.stop()
     except:
-        print("[!] Terjadi kesalahan.")
+        print("\n[!] Error.")
 
 if __name__ == "__main__":
     main()
