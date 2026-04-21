@@ -1,65 +1,47 @@
-import mpv
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.core.audio import SoundLoader
 import os
-import time
-import random
 
-def draw_visualizer(length=20):
-    # Membuat bar visualizer acak agar terlihat bergerak
-    chars = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
-    bar = "".join(random.choice(chars) for _ in range(length))
-    return f"\r\033[32m{bar}\033[0m" # Warna hijau
-
-def main():
-    try:
-        player = mpv.MPV(video=False, ytdl=False)
-        player.volume = 50 
-    except:
-        print("[!] MPV Error.")
-        return
-
-    songs = [f for f in os.listdir('.') if f.endswith(('.mp3', '.MP3'))]
-    if not songs:
-        print("[!] Tidak ada lagu.")
-        return
-
-    os.system('clear')
-    print("\033[95m" + "="*35)
-    print("      FMusik-B VISUALIZER")
-    print("="*35 + "\033[0m")
-    
-    for i, song in enumerate(songs, 1):
-        print(f"\033[94m[{i}]\033[0m {song}")
-
-    try:
-        pilih = int(input("\nNomor lagu: ")) - 1
-        current_song = songs[pilih]
-        player.play(current_song)
+class FMusikApp(App):
+    def build(self):
+        self.track = None
+        layout = BoxLayout(orientation='vertical', padding=20, spacing=10)
         
-        print(f"\n[▶] Playing: \033[1m{current_song}\033[0m")
-        print("\nKontrol: [p]Pause [+]Vol+ [-]Vol- [q]Quit")
+        # Header
+        self.label = Label(text="FMusik-B PRO v1.0", font_size='24sp')
+        layout.add_widget(self.label)
         
-        # Loop Visualizer
-        while player.playback_abort != 'die':
-            if not player.pause:
-                # Menampilkan bar yang bergerak
-                print(f"{draw_visualizer(30)}  Vol: {player.volume}%", end="", flush=True)
-            
-            # Kita gunakan non-blocking input sederhana
-            # Jika ingin input tanpa enter, butuh library tambahan, 
-            # untuk sekarang kita simulasi gerakan visualizer sebentar
-            time.sleep(0.2)
-            
-            # Catatan: Di Termux, input() akan menghentikan loop visualizer.
-            # Jadi kita minta input hanya jika user menekan enter atau butuh command.
-            if player.pause:
-                cmd = input("\n[PAUSED] Masukkan perintah: ").lower()
-                if cmd == 'p': player.pause = False
-                elif cmd == 'q': break
-            
-    except KeyboardInterrupt:
-        player.stop()
-    except:
-        print("\n[!] Error.")
+        # Tombol Play
+        btn_play = Button(text="PLAY LAGU TEST", size_hint=(1, 0.2), background_color=(0, 1, 0, 1))
+        btn_play.bind(on_press=self.play_music)
+        layout.add_widget(btn_play)
+        
+        # Tombol Stop
+        btn_stop = Button(text="STOP", size_hint=(1, 0.2), background_color=(1, 0, 0, 1))
+        btn_stop.bind(on_press=self.stop_music)
+        layout.add_widget(btn_stop)
+        
+        return layout
 
-if __name__ == "__main__":
-    main()
+    def play_music(self, instance):
+        # Mencari file mp3 pertama yang ada di folder
+        songs = [f for f in os.listdir('.') if f.endswith('.mp3')]
+        if songs:
+            if self.track: self.track.stop()
+            self.track = SoundLoader.load(songs[0])
+            if self.track:
+                self.track.play()
+                self.label.text = f"Memutar: {songs[0]}"
+        else:
+            self.label.text = "Gak ada file MP3, Bro!"
+
+    def stop_music(self, instance):
+        if self.track:
+            self.track.stop()
+            self.label.text = "Musik Berhenti"
+
+if __name__ == '__main__':
+    FMusikApp().run()
